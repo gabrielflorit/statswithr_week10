@@ -1,5 +1,5 @@
 ---
-title: "Statistical inference with the GSS data"
+title: "Proportion of fear of own neighborhood by race"
 output: 
   html_document: 
     fig_height: 4
@@ -15,38 +15,74 @@ output:
 library(ggplot2)
 library(dplyr)
 library(statsr)
+setwd("~/Desktop/statsWithR/statswithr_week10")
 ```
 
 ### Load data
-
-Make sure your data and R Markdown files are in the same directory. When loaded
-your data file will be called `gss`. Delete this note when before you submit 
-your work. 
 
 ```{r load-data}
 load("gss.Rdata")
 ```
 
-
-
 * * *
 
 ## Part 1: Data
 
+The GSS is conducted on even-numbered years.  Most samples are obtained via face-to-face interviews. If the respondent is not available to meet in-person, the interview will take place over the phone. 
+
+The sample size varies yearly, but is mostly in the high 2,000s.
+
+The population of interest is adults living in households in the U.S.
+
+As an observational study, the GSS is conducted by random sampling, which means the results can be generalized to the population. However, since there is no random assignment, the survey cannot be used to infer causal relationships.
 
 * * *
 
 ## Part 2: Research question
 
+Do whites and blacks fear walking at night in their neighborhood at the same rate?
 
+This question interests me because I've seen many articles covering racial bias in the way police interact with blacks, and how blacks fear police, but I haven't read anything about the way whites and blacks fear their own surroundings.
 
 * * *
 
 ## Part 3: Exploratory data analysis
 
-NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
-button (green button with orange arrow) above. Make sure that your code is visible
-in the project you submit. Delete this note when before you submit your work.
+Let's make a line chart showing the proportion of people fearing their own neighborhood over time.
+
+```{r}
+
+gss %>%
+	select(year, fear) %>%
+	na.omit %>%
+	count(year, fear) %>%
+	mutate(proportion = n / sum(n)) %>%
+	filter(fear == 'Yes') %>%
+	ggplot(aes(year, proportion)) + 
+	geom_line() +
+	scale_y_continuous(labels = scales::percent, limits=c(0, 1)) +
+	labs(title='Proportion of people fearing their own neighborhood')
+
+```
+
+Now let's look at how that line is broken down by race.
+
+```{r}
+
+gss %>%
+	select(year, race, fear) %>%
+	na.omit %>%
+	count(year, race, fear) %>%
+	mutate(proportion = n / sum(n)) %>%
+	filter(fear == 'Yes') %>%
+	ggplot(aes(year, proportion, color=race)) +
+	geom_line() +
+	scale_y_continuous(labels = scales::percent, limits=c(0, 1)) +
+	labs(title='Proportion of people fearing their own neighborhood by race')
+
+```
+
+Note that the 'Black' line is above 'White' for all years -- that is, the black proportion estimate is always higher than the white estimate. What can we infer about the population?
 
 * * *
 
