@@ -15,6 +15,7 @@ output:
 library(ggplot2)
 library(dplyr)
 library(statsr)
+library(tidyr)
 setwd("~/Desktop/statsWithR/statswithr_week10")
 ```
 
@@ -24,7 +25,7 @@ setwd("~/Desktop/statsWithR/statswithr_week10")
 load("gss.Rdata")
 ```
 
-* * *
+***
 
 ## Part 1: Data
 
@@ -36,7 +37,7 @@ The population of interest is adults living in households in the U.S.
 
 As an observational study, the GSS is conducted by random sampling, which means the results can be generalized to the population. However, since there is no random assignment, the survey cannot be used to infer causal relationships.
 
-* * *
+***
 
 ## Part 2: Research question
 
@@ -44,11 +45,11 @@ Do whites and blacks fear walking at night in their neighborhood at the same rat
 
 This question interests me because I've seen many articles covering racial bias in the way police interact with blacks, and how blacks fear police, but I haven't read anything about the way whites and blacks fear their own surroundings.
 
-* * *
+***
 
 ## Part 3: Exploratory data analysis
 
-Let's make a line chart showing the proportion of people fearing their own neighborhood over time.
+Here's a line chart showing the proportion of people fearing their own neighborhood over time.
 
 ```{r}
 
@@ -65,15 +66,17 @@ gss %>%
 
 ```
 
-Now let's look at how that line is broken down by race.
+And here's how that line is broken down by race.
 
 ```{r}
 
-gss %>%
+data <- gss %>%
 	select(year, race, fear) %>%
 	na.omit %>%
 	count(year, race, fear) %>%
-	mutate(proportion = n / sum(n)) %>%
+	mutate(proportion = n / sum(n))
+
+data %>%
 	filter(fear == 'Yes') %>%
 	ggplot(aes(year, proportion, color=race)) +
 	geom_line() +
@@ -82,12 +85,56 @@ gss %>%
 
 ```
 
-Note that the 'Black' line is above 'White' for all years -- that is, the black proportion estimate is always higher than the white estimate. What can we infer about the population?
+Here's a table showing the white and black fear estimates for the latest year.
 
-* * *
+```{r}
+
+data %>%
+	filter(fear == 'Yes', race %in% c('White', 'Black')) %>%
+	select(-n, -fear) %>%
+	arrange(year) %>%
+	spread(race, proportion) %>%
+	tail(1)
+
+```
+
+Note that the black proportion estimate is always higher than the white estimate. What can we infer about the population?
+
+***
 
 ## Part 4: Inference
 
-NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
-button (green button with orange arrow) above. Make sure that your code is visible
-in the project you submit. Delete this note when before you submit your work.
+#### Hypotheses
+
+$H_0: p_b - p_w = 0$, i.e. the proportion of blacks that fear walking at night in their own neighborhood is the same as that of whites, **in 2012**.
+
+$H_A: p_b - p_w \neq 0$, i.e. the proportion of blacks that fear walking at night in their own neighborhood is different than that of whites, **in 2012**.
+
+#### Check conditions
+
+**Independence:** Each group is a random sample from less than 10% of the population, therefore the observations are independent.
+
+**Success-failure condition:** Each group has at least 10 successes and failures.
+
+#### Method
+
+I'll conduct a two-proportion hypothesis test with a pooled proportion **for 2012**.
+
+#### Inference
+
+**Latest year (2012):**
+```{r}
+
+gss_2012 <- gss %>%
+	filter(year == 2012, race %in% c('White', 'Black')) %>%
+	select(fear, race) %>%
+	mutate(race = as.factor(as.character(race))) %>%
+	filter(complete.cases(.))
+
+inference(y = fear, x = race, data = gss_2012, statistic = 'proportion', type = 'ht', null = 0, alternative = 'twosided', method = 'theoretical', success = 'Yes')
+
+```
+
+#### Interpret results
+
+The p-value $\leq 0.05$, therefore we reject $H_0$, that in 2012, the proportion of blacks that fear walking at night in their own neighborhood is the same as that of whites.
